@@ -3,12 +3,17 @@
 
 #include <cstdint>
 #include <iostream>
+#include <random>
 
 #define VIDEO_BUFFER_WIDTH 64
 #define VIDEO_BUFFER_HEIGHT 32
 
 class CPU {
 private:
+	//prng
+	std::mt19937 RANDOM_GENERATOR;
+	std::uniform_int_distribution<int> PRN_DISTRIBUTE;
+
 	uint8_t* memory;
 	uint8_t V[16];
 	uint16_t I;
@@ -74,6 +79,7 @@ private:
 	void OP_Fx65();
 
 public:
+	uint8_t keypad_buffer[16];
 	uint32_t video_buffer[64 * 32];
 	int drawFlag;
 

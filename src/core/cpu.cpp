@@ -7,6 +7,7 @@
 #include<string.h>
 #include<fstream>
 #include<iostream>
+#include<random>
 
 CPU::CPU() :
     IStable{ &CPU::OP_IStable0,&CPU::OP_1nnn,&CPU::OP_2nnn,&CPU::OP_3xkk,&CPU::OP_4xkk,&CPU::OP_5xy0,&CPU::OP_6xkk,&CPU::OP_7xkk,
@@ -50,12 +51,18 @@ CPU::CPU() :
     IStableF[0x65] = &CPU::OP_Fx65;
 
     memory = new uint8_t[4096];
-    memcpy(memory + 0x50, Presets::fontset, sizeof(Presets::fontset));
+    memcpy(memory + Presets::font_offset, Presets::fontset, sizeof(Presets::fontset));
     memset(video_buffer, 0, sizeof(video_buffer));
     memset(stack, 0, sizeof(stack));
     memset(V, 0, sizeof(V));
+    memset(keypad_buffer, 0, sizeof(keypad_buffer));
     pc = 0x200;
     drawFlag = 0;
+
+    //prng
+    std::random_device seed;
+    RANDOM_GENERATOR = std::mt19937(seed());
+    PRN_DISTRIBUTE = std::uniform_int_distribution<int>(0, 255);
 }
 
 void CPU::load(char* buffer, std::size_t buffer_size) {
@@ -111,83 +118,156 @@ void CPU::OP_00EE() {
 }
 
 void CPU::OP_1nnn() {
-    pc = opcode & 0x0FFF;
+    pc = opcode & 0x0FFFU;
 }
 
 void CPU::OP_2nnn() {
     stack[sp++] = pc;
-    pc = opcode & 0xFFF;
+    pc = opcode & 0xFFFU;
 }
 
 void CPU::OP_3xkk() {
-    if (V[(opcode & 0xF00) >> 8] == (opcode & 0xFF)) {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    if (*Vx == (opcode & 0xFFU)) {
         pc += 2;
     }
 }
 void CPU::OP_4xkk() {
-    if (V[(opcode & 0xF00) >> 8] != (opcode & 0xFF)) {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    if (*Vx != (opcode & 0xFFU)) {
         pc += 2;
     }
 }
 void CPU::OP_5xy0() {
-    if (V[(opcode & 0xF00) >> 8] == V[(opcode & 0x0F0)>>8]) {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    if (*Vx == *Vy) {
         pc += 2;
     }
 }
 
 void CPU::OP_6xkk() {
-    V[(opcode & 0x0F00) >> 8] = (opcode & 0xFF);
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    *Vx = (opcode & 0xFFU);
 }
+
 void CPU::OP_7xkk() {
-    V[(opcode & 0x0F00) >> 8] += (opcode & 0xFF);
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    *Vx += (opcode & 0xFFU);
 }
 
 void CPU::OP_8xy0() {
-    V[(opcode & 0xF00) >> 8] = V[(opcode & 0x0F0) >> 8];
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    *Vx = *Vy;
 }
+
 void CPU::OP_8xy1() {
-    V[(opcode & 0xF00) >> 8] |= V[(opcode & 0x0F0) >> 8];
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    *Vx |= *Vy;
 }
+
 void CPU::OP_8xy2() {
-    V[(opcode & 0xF00) >> 8] &= V[(opcode & 0x0F0) >> 8];
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    *Vx &= *Vy;
 }
+
 void CPU::OP_8xy3() {
-    V[(opcode & 0xF00) >> 8] ^= V[(opcode & 0x0F0) >> 8];
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    *Vx ^= *Vy;
 }
-void CPU::OP_8xy4() {}
-void CPU::OP_8xy5() {}
-void CPU::OP_8xy6() {}
-void CPU::OP_8xy7() {}
-void CPU::OP_8xyE() {}
+
+void CPU::OP_8xy4() {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    uint16_t sum = ( uint16_t ) (*Vx) + ( uint16_t ) (*Vy);
+    if (sum > 255) {
+        V[0xF] = 1;
+    }
+    else {
+        V[0xF] = 0;
+    }
+    *Vx = ( uint8_t ) (sum & 0xFFU);
+}
+
+void CPU::OP_8xy5() {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    if (*Vx > *Vy) {
+        V[0xF] = 1;
+    }
+    else {
+        V[0xF] = 0;
+    }
+    *Vx -= *Vy;
+}
+
+void CPU::OP_8xy6() {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    //uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    V[0xF] = *Vx & 1U;
+    *Vx >>= 1;
+}
+
+void CPU::OP_8xy7() {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    if (*Vx < *Vy) {
+        V[0xF] = 1;
+    }
+    else {
+        V[0xF] = 0;
+    }
+    *Vx = *Vy - *Vx;
+}
+
+void CPU::OP_8xyE() {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    //uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    V[0xF] = (*Vx & 0x80U) >> 7;
+    *Vx <<= 1;
+}
 
 void CPU::OP_9xy0() {
-    if (V[(opcode & 0xF00) >> 8] != V[(opcode & 0x0F0)>>8]) {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x0F0U) >> 4];
+    if (*Vx != *Vy) {
         pc += 2;
     }
 }
 
 void CPU::OP_Annn() {
-    I = (opcode & 0xFFF);
+    I = (opcode & 0xFFFU);
 }
 
-void CPU::OP_Bnnn() {}
-void CPU::OP_Cxkk() {}
+void CPU::OP_Bnnn() {
+    pc = (opcode & 0x0FFFU) + V[0];
+}
+
+void CPU::OP_Cxkk() {
+    uint8_t* Vx = &V[(opcode & 0xF00U) >> 8];
+    *Vx = (opcode & 0x0FFU) & PRN_DISTRIBUTE(RANDOM_GENERATOR);
+}
 
 void CPU::OP_Dxyn() {
-    uint8_t Vx = (opcode & 0x0F00) >> 8;
-    uint8_t Vy = (opcode & 0x00F0) >> 4;
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    uint8_t* Vy = &V[(opcode & 0x00F0U) >> 4];
+    uint8_t xPos = *Vx;
+    uint8_t yPos = *Vy;
+
     uint8_t length = opcode & 0x000F;
     char sprite[0xF];
     memcpy(sprite, memory + I, length);
     V[0xF] = 0;
     drawFlag = 1;
-    // Wrap if going beyond screen boundaries
-    uint8_t xPos = V[Vx];
-    uint8_t yPos = V[Vy];
 
     for (int y = 0; y < length; y++) {
         for (int x = 0; x < 8; x++) {
             if (sprite[y] & (0x80 >> x)) {
+                // Wrap coordinates, if going beyond screen boundaries
                 uint32_t* screenPixel =
                     &video_buffer[(((yPos + y) % VIDEO_BUFFER_HEIGHT) * VIDEO_BUFFER_WIDTH) + ((xPos + x) % VIDEO_BUFFER_WIDTH)];
                 //
@@ -200,15 +280,74 @@ void CPU::OP_Dxyn() {
     }
 }
 
-void CPU::OP_Ex9E() {}
-void CPU::OP_ExA1() {}
+void CPU::OP_Ex9E() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    if (keypad_buffer[*Vx]) {
+        pc += 2;
+    }
+}
 
-void CPU::OP_Fx07() {}
-void CPU::OP_Fx0A() {}
-void CPU::OP_Fx15() {}
-void CPU::OP_Fx18() {}
-void CPU::OP_Fx1E() {}
-void CPU::OP_Fx29() {}
-void CPU::OP_Fx33() {}
-void CPU::OP_Fx55() {}
-void CPU::OP_Fx65() {}
+void CPU::OP_ExA1() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    if (!keypad_buffer[*Vx]) {
+        pc += 2;
+    }
+}
+
+void CPU::OP_Fx07() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    *Vx = delayTimer;
+}
+
+void CPU::OP_Fx0A() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    for (uint8_t i = 0;i < 16;i++) {
+        if (keypad_buffer[i]) {
+            *Vx = i;
+        }
+        else {
+            pc -= 2;
+        }
+    }
+}
+
+void CPU::OP_Fx15() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    delayTimer = *Vx;
+}
+
+void CPU::OP_Fx18() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    soundTimer = *Vx;
+}
+
+void CPU::OP_Fx1E() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    I = I + *Vx;
+}
+
+void CPU::OP_Fx29() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    uint8_t digit = *Vx & 0xF;
+    I = Presets::font_offset + (5U * digit);
+}
+
+void CPU::OP_Fx33() {
+    uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    uint8_t value = *Vx;
+    memory[I + 2] = value % 10;
+    value /= 10;
+    memory[I + 1] = value % 10;
+    value /= 10;
+    memory[I] = value % 10;
+}
+
+void CPU::OP_Fx55() {
+    uint8_t V_offset = (opcode & 0x0F00U) >> 8;
+    memcpy(memory + I, V, V_offset);
+}
+
+void CPU::OP_Fx65() {
+    uint8_t V_offset = (opcode & 0x0F00U) >> 8;
+    memcpy(V, memory + I, V_offset);
+}

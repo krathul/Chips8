@@ -6,7 +6,7 @@ OBJS = main.o cpu.o Chip8.o
 .PHONY : all clean
 
 all : $(OBJS)
-	$(CXX) -o build/chips8 $(OBJS) -Lsrc/lib -lSDL2 $(CXXFLAGS)
+	$(CXX) -o chips8 $(OBJS) -Lsrc/lib -lSDL2 $(CXXFLAGS)
 
 main.o : src/main.cpp src/Chip8.h src/core/cpu.h
 	$(CXX) -c -o $@ $< -Isrc/core -Isrc/include $(CXXFLAGS)
