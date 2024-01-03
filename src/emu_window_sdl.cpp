@@ -3,7 +3,7 @@
 #include<cstdlib>
 #include<vector>
 
-//#define SDL_MAIN_HANDLED
+#define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 
 #include "emu_window_sdl.h"
@@ -12,12 +12,11 @@
 
 Emu_window::Emu_window(Chip8_System* system_)
     : System{ system_ } {
-    System->Initialize();
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("Failed to initialize SDL2 %s", SDL_GetError());
         exit(1);
     }
-    //SDL_SetMainReady();
+    SDL_SetMainReady();
 }
 
 void Emu_window::OnStart() {
@@ -58,6 +57,7 @@ Emu_window::~Emu_window() {
 }
 
 void Emu_window::OnKeyEvent(int key, uint8_t state) {
+    std::cerr << key << " " << state << "\n";
     if (state == SDL_PRESSED) {
         System->Update_Key(key, 1);
     }

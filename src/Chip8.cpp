@@ -41,7 +41,7 @@ bool Chip8_System::LoadRom(std::string path) {
         char buffer[rom_size];
         std::fread(buffer, sizeof(char), rom_size, rom);
         std::fclose(rom);
-
+        std::cerr << Memory;
         // Load the ROM contents into the system memory, starting at 0x200
         memcpy(Memory + 0x200, buffer, rom_size);
         return true;
@@ -54,7 +54,8 @@ bool Chip8_System::LoadRom(std::string path) {
 void Chip8_System::run() {
     cpu.Cycle();
     if (Clear_Flag == 1) {
-        memset(Video_Buffer, 0, sizeof(uint32_t)*Video_Buffer_Size);
+        memset(Video_Buffer, 0, sizeof(uint32_t) * Video_Buffer_Size);
+        Clear_Flag = 0;
     }
 }
 

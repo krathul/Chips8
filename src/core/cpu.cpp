@@ -89,7 +89,6 @@ void CPU::Init() {
 void CPU::Cycle() {
     opcode = (Memory[pc] << 8) | (Memory[pc + 1]);
     pc += 2;
-
     ((*this).*(IStable[(opcode & 0xF000) >> 12]))();
     // Decrement the delay timer if it's been set
     if (delayTimer > 0) {

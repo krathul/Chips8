@@ -1,5 +1,6 @@
 .vscode/
 .DS_Store
 *.o
+chips8
 [Bb]uild*/
 Roms/
