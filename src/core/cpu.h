@@ -1,12 +1,7 @@
-#ifndef CPU_H
-#define CPU_H
+#pragma once
 
 #include <cstdint>
-#include <iostream>
 #include <random>
-
-#define VIDEO_BUFFER_WIDTH 64
-#define VIDEO_BUFFER_HEIGHT 32
 
 class CPU {
 private:
@@ -14,7 +9,11 @@ private:
 	std::mt19937 RANDOM_GENERATOR;
 	std::uniform_int_distribution<int> PRN_DISTRIBUTE;
 
-	uint8_t* memory;
+	uint8_t* Memory;
+	uint8_t* Keypad_Buffer;
+	uint32_t* Video_Buffer;
+	int& Clear_Flag;
+
 	uint8_t V[16];
 	uint16_t I;
 	uint8_t sp;
@@ -31,6 +30,7 @@ private:
 	void (CPU::* IStableE[0xE + 1])(void);
 	void (CPU::* IStableF[0x65 + 1])(void);
 
+	void Init_ISTable();
 	//Instuctions
 	void OP_NULL();
 	void OP_IStable0();
@@ -79,15 +79,12 @@ private:
 	void OP_Fx65();
 
 public:
-	uint8_t keypad_buffer[16];
-	uint32_t video_buffer[64 * 32];
-	int drawFlag;
-
-	CPU();
-	void load(char* buffer, std::size_t buffer_size);
+	static const int VIDEO_BUFFER_WIDTH=64;
+	static const int VIDEO_BUFFER_HEIGHT = 32;
+	explicit CPU(uint8_t* memory_, uint8_t* keypad_Buffer_, uint32_t* video_buffer_, int& clear_flag_);
 	void Cycle();
+	void Init();
 };
 
-#endif
 
 

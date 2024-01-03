@@ -1,19 +1,33 @@
 #include "cpu.h"
 #include "utils.h"
 
-#include<stdlib.h>
-#include<stdint.h>
-#include<stdio.h>
-#include<string.h>
-#include<fstream>
+#include<cstdlib>
+#include<cstdint>
+#include<cstdio>
+#include<cstring>
 #include<iostream>
 #include<random>
 
-CPU::CPU() :
-    IStable{ &CPU::OP_IStable0,&CPU::OP_1nnn,&CPU::OP_2nnn,&CPU::OP_3xkk,&CPU::OP_4xkk,&CPU::OP_5xy0,&CPU::OP_6xkk,&CPU::OP_7xkk,
-    &CPU::OP_IStable8,&CPU::OP_9xy0,&CPU::OP_Annn,&CPU::OP_Bnnn,&CPU::OP_Cxkk,&CPU::OP_Dxyn,&CPU::OP_IStableE,&CPU::OP_IStableF }
-{
+void CPU::Init_ISTable() {
     //Initializing the instruction table
+
+    IStable[0x0] = &CPU::OP_IStable0;
+    IStable[0x1] = &CPU::OP_1nnn;
+    IStable[0x2] = &CPU::OP_2nnn;
+    IStable[0x3] = &CPU::OP_3xkk;
+    IStable[0x4] = &CPU::OP_4xkk;
+    IStable[0x5] = &CPU::OP_5xy0;
+    IStable[0x6] = &CPU::OP_6xkk;
+    IStable[0x7] = &CPU::OP_7xkk;
+    IStable[0x8] = &CPU::OP_IStable8;
+    IStable[0x9] = &CPU::OP_9xy0;
+    IStable[0xA] = &CPU::OP_Annn;
+    IStable[0xB] = &CPU::OP_Bnnn;
+    IStable[0xC] = &CPU::OP_Cxkk;
+    IStable[0xD] = &CPU::OP_Dxyn;
+    IStable[0xE] = &CPU::OP_IStableE;
+    IStable[0xF] = &CPU::OP_IStableF;
+
     for (int i = 0;i <= 0xE;i++) {
         IStable0[i] = &CPU::OP_NULL;
         IStable8[i] = &CPU::OP_NULL;
@@ -49,31 +63,33 @@ CPU::CPU() :
     IStableF[0x33] = &CPU::OP_Fx33;
     IStableF[0x55] = &CPU::OP_Fx55;
     IStableF[0x65] = &CPU::OP_Fx65;
+}
 
-    memory = new uint8_t[4096];
-    memcpy(memory + Presets::font_offset, Presets::fontset, sizeof(Presets::fontset));
-    memset(video_buffer, 0, sizeof(video_buffer));
+CPU::CPU(uint8_t* memory_, uint8_t* keypad_buffer_, uint32_t* video_buffer_, int& clear_flag_)
+    : Memory{ memory_ }, Keypad_Buffer{ keypad_buffer_ }, Video_Buffer{ video_buffer_ }, Clear_Flag{ clear_flag_ } {
     memset(stack, 0, sizeof(stack));
     memset(V, 0, sizeof(V));
-    memset(keypad_buffer, 0, sizeof(keypad_buffer));
-    pc = 0x200;
-    drawFlag = 0;
+    I = 0;
+    sp = 0;
+    pc = 0;
+    delayTimer = 0;
+    soundTimer = 0;
+    opcode = 0;
+}
 
+void CPU::Init() {
+    Init_ISTable();
+    pc = 0x200;
     //prng
     std::random_device seed;
     RANDOM_GENERATOR = std::mt19937(seed());
     PRN_DISTRIBUTE = std::uniform_int_distribution<int>(0, 255);
 }
 
-void CPU::load(char* buffer, std::size_t buffer_size) {
-    // Load the ROM contents into the CPU's memory, starting at 0x200
-    memcpy(memory + 0x200, buffer, buffer_size);
-}
-
 void CPU::Cycle() {
-    opcode = (memory[pc] << 8) | (memory[pc + 1]);
+    opcode = (Memory[pc] << 8) | (Memory[pc + 1]);
     pc += 2;
-    //std::cout << opcode <<"\n";
+
     ((*this).*(IStable[(opcode & 0xF000) >> 12]))();
     // Decrement the delay timer if it's been set
     if (delayTimer > 0) {
@@ -108,8 +124,8 @@ void CPU::OP_NULL() {
 }
 
 void CPU::OP_00E0() {
-    memset(video_buffer, 0, sizeof(video_buffer));
-    drawFlag = 1;
+    //clear video_buffer
+    Clear_Flag = 1;
 }
 
 void CPU::OP_00EE() {
@@ -260,16 +276,15 @@ void CPU::OP_Dxyn() {
 
     uint8_t length = opcode & 0x000F;
     char sprite[0xF];
-    memcpy(sprite, memory + I, length);
+    memcpy(sprite, Memory + I, length);
     V[0xF] = 0;
-    drawFlag = 1;
 
     for (int y = 0; y < length; y++) {
         for (int x = 0; x < 8; x++) {
             if (sprite[y] & (0x80 >> x)) {
                 // Wrap coordinates, if going beyond screen boundaries
                 uint32_t* screenPixel =
-                    &video_buffer[(((yPos + y) % VIDEO_BUFFER_HEIGHT) * VIDEO_BUFFER_WIDTH) + ((xPos + x) % VIDEO_BUFFER_WIDTH)];
+                    &(Video_Buffer[(((yPos + y) % VIDEO_BUFFER_HEIGHT) * VIDEO_BUFFER_WIDTH) + ((xPos + x) % VIDEO_BUFFER_WIDTH)]);
                 //
                 if (*screenPixel == 0xFFFFFFFF) {
                     V[0xF] = 1;
@@ -282,14 +297,14 @@ void CPU::OP_Dxyn() {
 
 void CPU::OP_Ex9E() {
     uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
-    if (keypad_buffer[*Vx]) {
+    if (Keypad_Buffer[*Vx]) {
         pc += 2;
     }
 }
 
 void CPU::OP_ExA1() {
     uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
-    if (!keypad_buffer[*Vx]) {
+    if (!Keypad_Buffer[*Vx]) {
         pc += 2;
     }
 }
@@ -301,13 +316,16 @@ void CPU::OP_Fx07() {
 
 void CPU::OP_Fx0A() {
     uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
+    bool wait = true;
     for (uint8_t i = 0;i < 16;i++) {
-        if (keypad_buffer[i]) {
+        if (Keypad_Buffer[i]) {
             *Vx = i;
+            wait = false;
+            break;
         }
-        else {
-            pc -= 2;
-        }
+    }
+    if (wait) {
+        pc -= 2;
     }
 }
 
@@ -335,19 +353,19 @@ void CPU::OP_Fx29() {
 void CPU::OP_Fx33() {
     uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
     uint8_t value = *Vx;
-    memory[I + 2] = value % 10;
+    Memory[I + 2] = value % 10;
     value /= 10;
-    memory[I + 1] = value % 10;
+    Memory[I + 1] = value % 10;
     value /= 10;
-    memory[I] = value % 10;
+    Memory[I] = value % 10;
 }
 
 void CPU::OP_Fx55() {
     uint8_t V_offset = (opcode & 0x0F00U) >> 8;
-    memcpy(memory + I, V, V_offset);
+    memcpy(Memory + I, V, V_offset);
 }
 
 void CPU::OP_Fx65() {
     uint8_t V_offset = (opcode & 0x0F00U) >> 8;
-    memcpy(V, memory + I, V_offset);
+    memcpy(V, Memory + I, V_offset);
 }

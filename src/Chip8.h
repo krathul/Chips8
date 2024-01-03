@@ -1,29 +1,27 @@
-#ifndef CHIP8_H
-#define CHIP8_H
+#pragma once
 
-#include<SDL2/SDL.h>
-#include<iostream>
+#include<cstdint>
 
 #include "core/cpu.h"
 
-class Chip8 {
+class Chip8_System {
 private:
     CPU cpu;
-    
+    uint8_t Memory[4096];
+    uint8_t Keypad_Buffer[16];
+    int Clear_Flag;
+
 public:
-    SDL_Window* gWindow;
-    SDL_Renderer* gRenderer;
-    SDL_Texture* gTexture;
+    static const int VIDEO_BUFFER_WIDTH=64;
+    static const int VIDEO_BUFFER_HEIGHT = 32;
+    static const int Video_Buffer_Size = VIDEO_BUFFER_WIDTH * VIDEO_BUFFER_HEIGHT;
 
-    int SCREEN_HEIGHT;
-    int SCREEN_WIDTH;
-
-    Chip8(int scale);
-    bool Init();
+    int emulating;
+    uint32_t Video_Buffer[Video_Buffer_Size];
+    explicit Chip8_System();
+    void Initialize();
     bool LoadRom(std::string path);
     void run();
-    void Update();
-    ~Chip8();
+    void Update_Key(int key,int state);
 };
 
-#endif
