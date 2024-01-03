@@ -57,7 +57,7 @@ Emu_window::~Emu_window() {
 }
 
 void Emu_window::OnKeyEvent(int key, uint8_t state) {
-    std::cerr << key << " " << state << "\n";
+    if (key == -1) return;
     if (state == SDL_PRESSED) {
         System->Update_Key(key, 1);
     }
@@ -74,9 +74,11 @@ void Emu_window::PollEvents() {
         case SDL_QUIT:
             is_open = false;
             break;
-        case SDL_KEYDOWN:
         case SDL_KEYUP:
+        case SDL_KEYDOWN:
             OnKeyEvent(InputProcessKeypadEvent(event.key.keysym.sym), event.key.state);
+            break;
+        default:
             break;
         }
     }

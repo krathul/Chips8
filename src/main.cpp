@@ -21,6 +21,6 @@ int main(int argc, char** argv) {
 
     while (emu_window->IsOpen()) {
         emu_window->Run();
-        SDL_Delay(10);
+        SDL_Delay(5);
     }
 }
