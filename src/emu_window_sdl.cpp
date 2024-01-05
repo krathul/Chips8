@@ -35,8 +35,8 @@ void Emu_window::Run() {
     if (!paused) {
         System->run();
         OnUpdate();
-        PollEvents();
     }
+    PollEvents();
 }
 
 bool Emu_window::IsOpen() {
@@ -58,11 +58,13 @@ Emu_window::~Emu_window() {
 
 void Emu_window::OnKeyEvent(int key, uint8_t state) {
     if (key == -1) return;
-    if (state == SDL_PRESSED) {
-        System->Update_Key(key, 1);
-    }
-    else if (state == SDL_RELEASED) {
-        System->Update_Key(key, 0);
+    if (!paused) {
+        if (state == SDL_PRESSED) {
+            System->Update_Key(key, 1);
+        }
+        else if (state == SDL_RELEASED) {
+            System->Update_Key(key, 0);
+        }
     }
 }
 
@@ -78,7 +80,15 @@ void Emu_window::PollEvents() {
         case SDL_KEYDOWN:
             OnKeyEvent(InputProcessKeypadEvent(event.key.keysym.sym), event.key.state);
             break;
-        default:
+        case SDL_WINDOWEVENT:
+            switch (event.window.event) {
+            case SDL_WINDOWEVENT_FOCUS_LOST:
+                paused = true;
+                break;
+            case SDL_WINDOWEVENT_FOCUS_GAINED:
+                paused = false;
+                break;
+            }
             break;
         }
     }

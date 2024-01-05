@@ -41,7 +41,6 @@ bool Chip8_System::LoadRom(std::string path) {
         char buffer[rom_size];
         std::fread(buffer, sizeof(char), rom_size, rom);
         std::fclose(rom);
-        std::cerr << Memory;
         // Load the ROM contents into the system memory, starting at 0x200
         memcpy(Memory + 0x200, buffer, rom_size);
         return true;

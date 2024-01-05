@@ -5,7 +5,7 @@ OBJS = main.o cpu.o Chip8.o emu_window_sdl.o InputMapping.o
 .PHONY : all clean
 
 all : $(OBJS)
-	$(CXX) -o chips8 $(OBJS) -Lsrc/lib -lSDL2 $(CXXFLAGS)
+	$(CXX) -o build/chips8 $(OBJS) -Lsrc/lib -lSDL2 $(CXXFLAGS)
 
 main.o : src/main.cpp src/Chip8.h src/emu_window_sdl.h
 	$(CXX) -c -o $@ $< -Isrc/core -Isrc/include $(CXXFLAGS)
