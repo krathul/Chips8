@@ -23,10 +23,12 @@ void Emu_window::OnStart() {
     SCREEN_HEIGHT = 320;
     SCREEN_WIDTH = 640;
     const std::string window_title = "Chips8";
-    render_Window = SDL_CreateWindow(window_title.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    render_Window = SDL_CreateWindow(window_title.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     gRenderer = SDL_CreateRenderer(render_Window, -1, SDL_RENDERER_ACCELERATED);
     SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
-    gTexture = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, System->VIDEO_BUFFER_WIDTH, System->VIDEO_BUFFER_HEIGHT);
+    gTexture = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING,
+        System->VIDEO_BUFFER_WIDTH, System->VIDEO_BUFFER_HEIGHT);
     is_open = true;
     paused = false;
 }
@@ -34,9 +36,9 @@ void Emu_window::OnStart() {
 void Emu_window::Run() {
     if (!paused) {
         System->run();
-        OnUpdate();
     }
     PollEvents();
+    OnUpdate();
 }
 
 bool Emu_window::IsOpen() {

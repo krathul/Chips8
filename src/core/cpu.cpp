@@ -65,15 +65,16 @@ void CPU::Init_ISTable() {
     IStableF[0x65] = &CPU::OP_Fx65;
 }
 
-CPU::CPU(uint8_t* memory_, uint8_t* keypad_buffer_, uint32_t* video_buffer_, int& clear_flag_)
-    : Memory{ memory_ }, Keypad_Buffer{ keypad_buffer_ }, Video_Buffer{ video_buffer_ }, Clear_Flag{ clear_flag_ } {
+CPU::CPU(uint8_t* memory_, uint8_t* keypad_buffer_, uint32_t* video_buffer_, int& clear_flag_, uint8_t& delay_timer_, uint8_t& sound_timer_)
+    : Clear_Flag{ clear_flag_ }, DelayTimer{ delay_timer_ }, SoundTimer{ sound_timer_ } {
+    Memory = memory_;
+    Keypad_Buffer = keypad_buffer_;
+    Video_Buffer = video_buffer_;
     memset(stack, 0, sizeof(stack));
     memset(V, 0, sizeof(V));
     I = 0;
     sp = 0;
     pc = 0;
-    delayTimer = 0;
-    soundTimer = 0;
     opcode = 0;
 }
 
@@ -91,15 +92,6 @@ void CPU::Cycle() {
     //std::cerr <<"0x"<< std::hex << opcode <<" ";
     pc += 2;
     ((*this).*(IStable[(opcode & 0xF000) >> 12]))();
-    // Decrement the delay timer if it's been set
-    if (delayTimer > 0) {
-        --delayTimer;
-    }
-
-    // Decrement the sound timer if it's been set
-    if (soundTimer > 0) {
-        --soundTimer;
-    }
 }
 
 //Instuctions
@@ -338,7 +330,7 @@ void CPU::OP_ExA1() {
 void CPU::OP_Fx07() {
     //std::cerr << "set vx=delay timer\n";
     uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
-    *Vx = delayTimer;
+    *Vx = DelayTimer;
 }
 
 void CPU::OP_Fx0A() {
@@ -347,7 +339,7 @@ void CPU::OP_Fx0A() {
     bool wait = true;
     for (int i = 0;i < 16;i++) {
         if (Keypad_Buffer[i]) {
-            *Vx = (uint8_t)i;
+            *Vx = ( uint8_t ) i;
             wait = false;
             break;
         }
@@ -360,13 +352,13 @@ void CPU::OP_Fx0A() {
 void CPU::OP_Fx15() {
     //std::cerr << "set delay timer\n";
     uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
-    delayTimer = *Vx;
+    DelayTimer = *Vx;
 }
 
 void CPU::OP_Fx18() {
     //std::cerr << "set sound timer\n";
     uint8_t* Vx = &V[(opcode & 0x0F00U) >> 8];
-    soundTimer = *Vx;
+    SoundTimer = *Vx;
 }
 
 void CPU::OP_Fx1E() {

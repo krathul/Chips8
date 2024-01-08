@@ -13,13 +13,13 @@ private:
 	uint8_t* Keypad_Buffer;
 	uint32_t* Video_Buffer;
 	int& Clear_Flag;
+	uint8_t& DelayTimer;
+	uint8_t& SoundTimer;
 
 	uint8_t V[16];
 	uint16_t I;
 	uint8_t sp;
 	uint16_t pc;
-	uint8_t delayTimer;
-	uint8_t soundTimer;
 	uint16_t opcode;
 	uint16_t stack[16];
 
@@ -81,7 +81,8 @@ private:
 public:
 	static const int VIDEO_BUFFER_WIDTH=64;
 	static const int VIDEO_BUFFER_HEIGHT = 32;
-	explicit CPU(uint8_t* memory_, uint8_t* keypad_Buffer_, uint32_t* video_buffer_, int& clear_flag_);
+	explicit CPU(uint8_t* memory_, uint8_t* keypad_Buffer_, uint32_t* video_buffer_,
+		int& clear_flag_, uint8_t& delay_timer_, uint8_t& sound_timer_);
 	void Cycle();
 	void Init();
 };

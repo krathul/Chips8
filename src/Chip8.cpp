@@ -11,7 +11,7 @@
 
 
 Chip8_System::Chip8_System()
-    : cpu{ CPU(Memory, Keypad_Buffer, Video_Buffer, Clear_Flag) } {
+    : cpu{ CPU(Memory, Keypad_Buffer, Video_Buffer, Clear_Flag, DelayTimer, SoundTimer) } {
     memset(Memory, 0, sizeof(Memory));
     memset(Keypad_Buffer, 0, sizeof(Keypad_Buffer));
     memset(Video_Buffer, 0, sizeof(Video_Buffer));
@@ -31,7 +31,7 @@ bool Chip8_System::LoadRom(std::string path) {
     // Open the file as a stream of binary and move the file pointer to the end
     std::FILE* rom = std::fopen(path.c_str(), "rb");
 
-    if (rom!=NULL) {
+    if (rom != NULL) {
         // Get size of file and allocate a buffer to hold the contents
 
         std::fseek(rom, 0, SEEK_END);
@@ -51,10 +51,21 @@ bool Chip8_System::LoadRom(std::string path) {
 }
 
 void Chip8_System::run() {
-    cpu.Cycle();
-    if (Clear_Flag == 1) {
-        memset(Video_Buffer, 0, sizeof(uint32_t) * Video_Buffer_Size);
-        Clear_Flag = 0;
+    for (int i = 1;i <= ipf;i++) {
+        cpu.Cycle();
+        if (Clear_Flag == 1) {
+            memset(Video_Buffer, 0, sizeof(uint32_t) * Video_Buffer_Size);
+            Clear_Flag = 0;
+        }
+    }
+    // Decrement the delay timer if it's been set
+    if (DelayTimer > 0) {
+        --DelayTimer;
+    }
+
+    // Decrement the sound timer if it's been set
+    if (SoundTimer > 0) {
+        --SoundTimer;
     }
 }
 

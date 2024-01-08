@@ -1,6 +1,7 @@
 .vscode/
 .DS_Store
 *.o
+.editorconfig
 ./chips8
 [Bb]uild*/
 src/include

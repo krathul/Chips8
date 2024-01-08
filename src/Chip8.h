@@ -10,18 +10,21 @@ private:
     uint8_t Memory[4096];
     uint8_t Keypad_Buffer[16];
     int Clear_Flag;
+    uint8_t DelayTimer;
+    uint8_t SoundTimer;
 
 public:
     static const int VIDEO_BUFFER_WIDTH=64;
     static const int VIDEO_BUFFER_HEIGHT = 32;
     static const int Video_Buffer_Size = VIDEO_BUFFER_WIDTH * VIDEO_BUFFER_HEIGHT;
 
+    static const int ipf = 10;
     int emulating;
     uint32_t Video_Buffer[Video_Buffer_Size];
     explicit Chip8_System();
     void Initialize();
     bool LoadRom(std::string path);
     void run();
-    void Update_Key(int key,int state);
+    void Update_Key(int key, int state);
 };
 
